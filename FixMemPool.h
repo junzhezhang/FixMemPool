@@ -60,6 +60,7 @@ private:
 
 FixMemPool::FixMemPool(size_t init_size_mb, size_t uint_size_kb)
 {
+	//cout<<"test 2"<<endl;
 	//init
 	pMemPool = NULL;
 	pAllocatedMemUint = pFreeMemUint = NULL;
@@ -67,17 +68,18 @@ FixMemPool::FixMemPool(size_t init_size_mb, size_t uint_size_kb)
 	numUints = numAllocatedUintsInPool = numAllocatedUints = 0;
 
 	size_t perMB = 1u << 20;
-	//size_t perKB=1u<<10;
+	size_t perKB=1u<<10;
+	memUintSize = uint_size_kb * perKB;
 	size_t poolSize = init_size_mb*perMB;
 	pMemPool = malloc(poolSize);
-
+	 //cout<<"test 3"<<' '<<poolSize<<' '<<memUintSize<<endl;
 	bool memAligned = poolSize % memUintSize == 0; //check if mem aligned
+	//cout<<"test 4"<<endl;
 	numUints = memAligned ? (poolSize / memUintSize) : (poolSize / memUintSize + 1);
 	poolSize = memUintSize * numUints;//reset poolSize
+ 	//cout<<"test 5"<<endl;
 
-
-
-									  //initiliazation,
+ 	//initiliazation,
 	for (size_t idx = 0; idx<numUints; idx++) {
 		//simply linking adjacent uints during init.
 		listNode[idx].prev = idx - 1; //listNode[0].prev=-1,-1 in index equavalent to NULL in pointer.
@@ -117,18 +119,23 @@ void* FixMemPool::Malloc(const size_t size) {
 	//allocate out of Pool if larger omitted.
 	numAllocatedUintsInPool++;
 	size_t idx = IndexFromAddrArray((char*)pFreeMemUint); //here idx refers to current Uint.
-	pFreeMemUint = (_Uint*)AddrFromIndexArray(listNode[idx].prev);
+	pFreeMemUint = (_Uint*)AddrFromIndexArray(listNode[idx].prev);//shift pFree
 	listNode[listNode[idx].prev].next = -1;
+
 	if (pAllocatedMemUint == NULL) {
 		listNode[idx].prev = -1; //tail
+  		//cout<<"test 7"<<endl;
 	}
 	else {
 		listNode[idx].prev = IndexFromAddrArray((char*)pAllocatedMemUint);
+   		listNode[IndexFromAddrArray((char*)pAllocatedMemUint)].next=idx;
 	}
+
 	//listNode[idx].next had been -1;
-	listNode[IndexFromAddrArray((char*)pAllocatedMemUint)].next = idx;
 	pAllocatedMemUint = (_Uint*)AddrFromIndexArray(idx);
 	listNode[idx].pBlk = (void*)AddrFromIndex(idx);//map from array to block of memory pool.
+ 	cout<<"test 8"<<' '<<pAllocatedMemUint<<endl;
+
 	return listNode[idx].pBlk;
 }
 
@@ -156,16 +163,15 @@ void FixMemPool::Free(void *ptr) {
 
 int main() {
 	//simple test if functional.
-	cout<<"test 1"<<endl;
+	//cout<<"test 1"<<endl;
 	FixMemPool pool(1, 1);
-	cout<<"test 2"<<endl;
+	//cout<<"test 6"<<endl;
 	const size_t dataSize = 1000;//any size <= 1024.
-	for (int i = 0; i < 1024; i++) {
-		void* ptr = pool.Malloc(dataSize); //TODO to come up with ptr storing, and returning pointer type.
-		if (i % 2) {
-			pool.Free(ptr);
-		}
-	}
+
+	void* ptr = pool.Malloc(dataSize); //TODO to come up with ptr storing, and returning pointer type.
+ 	void* ptr2 = pool.Malloc(dataSize);
+	 void* ptr3 = pool.Malloc(dataSize);
+ 	pool.Free(ptr2);
 	//TODO to include usage counter functions.
 	cout << "no error" << endl;
 	//int c = getchar();
